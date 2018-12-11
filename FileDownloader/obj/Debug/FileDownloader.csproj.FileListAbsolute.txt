@@ -5,3 +5,7 @@ E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.cspro
 E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csproj.CoreCompileInputs.cache
 E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.exe
 E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.pdb
+E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.dll
+E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.pdb
+E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.xml
+E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csproj.CopyComplete

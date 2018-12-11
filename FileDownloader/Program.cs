@@ -11,7 +11,7 @@ namespace WebFileDownloader
         static void Main(string[] args)
         {
             FileDownloader fd = new FileDownloader(@"https://bank.gov.ua/control/uk/publish/article?art_id=6738234&cat_id=51342");
-            var awaiter = fd.Start().GetAwaiter();
+            var awaiter = fd.Start().ConfigureAwait(false).GetAwaiter();
 
             awaiter.GetResult();
         }

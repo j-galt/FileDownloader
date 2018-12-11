@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,8 +13,8 @@ namespace WebFileDownloader
     public class FileDownloader
     {
         private string _uri;
-        private readonly string _subPageUri = @"(files/Shareholders/([\d]+)/index.html)";
-        private readonly string _fileUri = @"""(.*\.(pdf|PDF))"".*\>[\s]*([\d]+\.[\d]+\.[\d]+)";
+        private readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
+        private readonly string _fileUri = @".*\.(pdf|PDF)";
 
         public FileDownloader(string uri)
         {
@@ -23,49 +24,65 @@ namespace WebFileDownloader
         public async Task Start()
         {
             WebClient wc = new WebClient();
-            await DownloadAllFiles(_uri, @"D:\Test1", wc);
+            await DownloadAllFiles(_uri, @"D:\Test\", wc);
         }
 
         private async Task DownloadAllFiles(string uri, string localPath, WebClient wc)
         {
-            string str;
+            HtmlWeb hw = new HtmlWeb();
+            HtmlDocument hd = new HtmlDocument();
 
             try
             {
-                var data = await wc.OpenReadTaskAsync(new Uri(uri));
-
-                using (StreamReader sr = new StreamReader(data))
-                {
-                    str = await sr.ReadToEndAsync();
-                }
+                hd = hw.Load(uri);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 throw;
             }
 
-            Regex rx = new Regex(_subPageUri, RegexOptions.IgnoreCase);
-            MatchCollection subPageUris = rx.Matches(str);
+            Regex pageRx = new Regex(_subPageUri, RegexOptions.IgnoreCase);
+            Regex fileRx = new Regex(_fileUri, RegexOptions.IgnoreCase);
+            Dictionary<string, string> pageUris = new Dictionary<string, string>();
+            Dictionary<string, string> fileUris = new Dictionary<string, string>();
 
-            foreach (var subPageUri in subPageUris)
+            List<HtmlNode> l = new List<HtmlNode>();
+            foreach (var link in hd.DocumentNode.SelectNodes("//a[@href]"))
             {
-                string strUri = @"https://bank.gov.ua/" + ((Match)subPageUri).Groups[1].Value;
-                await DownloadAllFiles(strUri, localPath + '/' + ((Match)subPageUri).Groups[2].Value, wc);
+                l.Add(link);
             }
 
-            rx = new Regex(_fileUri, RegexOptions.IgnoreCase);
-            MatchCollection fileUris = rx.Matches(str);
+            foreach (var link in l)
+            {
+                string hrefValue = link.GetAttributeValue("href", string.Empty);
+
+                if (pageRx.IsMatch(hrefValue))
+                {
+                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r)", "");
+                    pageUris[hrefValue] = name;
+                }
+
+                if (fileRx.IsMatch(hrefValue))
+                {
+                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r)", "").Trim();
+                    fileUris[hrefValue] = name;
+                }                
+            }
+                           
+            foreach (var pageUri in pageUris)
+            {
+                string fullUri = @"https://bank.gov.ua/" + pageUri.Key;
+                await DownloadAllFiles(fullUri, localPath + pageUri.Value, wc);
+            }
 
             foreach (var fileUri in fileUris)
             {
-                string file = ((Match)fileUri).Groups[1].Value;
-                string fileName = ((Match)fileUri).Groups[2].Value;
                 int i = uri.LastIndexOf('/');
 
                 if (i > 0)
                 {
-                    string strUri = uri.Substring(0, i + 1) + file;
-                    await DownloadFileAsync(strUri, localPath, fileName);
+                    string fullUri = uri.Substring(0, i + 1) + fileUri.Key;
+                    await DownloadFileAsync(fullUri, localPath, fileUri.Value);
                 }
             }
         }
@@ -80,7 +97,14 @@ namespace WebFileDownloader
             }
             
             WebClient wc = new WebClient();
-            await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");        
+            try
+            {
+                await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }
