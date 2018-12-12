@@ -46,13 +46,7 @@ namespace WebFileDownloader
             Dictionary<string, string> pageUris = new Dictionary<string, string>();
             Dictionary<string, string> fileUris = new Dictionary<string, string>();
 
-            List<HtmlNode> l = new List<HtmlNode>();
             foreach (var link in hd.DocumentNode.SelectNodes("//a[@href]"))
-            {
-                l.Add(link);
-            }
-
-            foreach (var link in l)
             {
                 string hrefValue = link.GetAttributeValue("href", string.Empty);
 
@@ -97,6 +91,7 @@ namespace WebFileDownloader
             }
             
             WebClient wc = new WebClient();
+
             try
             {
                 await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
