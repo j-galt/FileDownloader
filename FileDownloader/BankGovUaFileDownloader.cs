@@ -12,6 +12,7 @@ namespace FileDownloader
     {
         private readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
         private readonly string _fileUri = @".*\.(pdf|PDF)";
+        private readonly string _tagAndSpace = @"(<[^>]*>)|(\t|\n|\r|\s)";
         private IWebClientFactory _webClientFactory;
         private DownloadResult _result;
 
@@ -52,13 +53,13 @@ namespace FileDownloader
 
                 if (pageRx.IsMatch(hrefValue))
                 {
-                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r)", "");
+                    var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
                     pageUris[hrefValue] = name;
                 }
 
                 if (fileRx.IsMatch(hrefValue))
                 {
-                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r|\s)", "");
+                    var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
                     fileUris[hrefValue] = name;
                 }                
             }
