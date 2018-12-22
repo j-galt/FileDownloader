@@ -1,19 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using FileDownloader.Interfaces;
 
-namespace WebFileDownloader
+namespace FileDownloader
 {
     class Program
     {
         static void Main(string[] args)
         {
-            FileDownloader fd = new FileDownloader(@"https://bank.gov.ua/control/uk/publish/article?art_id=6738234&cat_id=51342");
-            var awaiter = fd.Start().ConfigureAwait(false).GetAwaiter();
+            IWebClientFactory wcf = new WebClientFactory();
+            BankGovUaFileDownloader fd = new BankGovUaFileDownloader(wcf);
 
-            awaiter.GetResult();
+            var awaiter = fd.Start(@"https://bank.gov.ua/control/uk/publish/article?art_id=6738234&cat_id=51342",
+                @"D:\\Test\")
+                .ConfigureAwait(false)
+                .GetAwaiter();
+
+            Console.WriteLine("Downloading...");
+
+            var res = awaiter.GetResult();
+
+            Console.WriteLine("Number of successfully downloaded files: {0}", res.NumberOfDownloadedFiles);
+            Console.WriteLine("Failed to download: {0}", res.FailedToDownload.Count());
+
+            foreach (var file in res.FailedToDownload)
+                Console.WriteLine(file.Key);
         }
     }
 }

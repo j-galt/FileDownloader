@@ -9,3 +9,14 @@ E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.dll
 E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.pdb
 E:\Studies\Projects\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.xml
 E:\Studies\Projects\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csproj.CopyComplete
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\FileDownloader.exe.config
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\FileDownloader.exe
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\FileDownloader.pdb
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.dll
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.pdb
+D:\Repos\FileDownloader\FileDownloader\bin\Debug\HtmlAgilityPack.xml
+D:\Repos\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csprojAssemblyReference.cache
+D:\Repos\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csproj.CoreCompileInputs.cache
+D:\Repos\FileDownloader\FileDownloader\obj\Debug\FileDownloader.csproj.CopyComplete
+D:\Repos\FileDownloader\FileDownloader\obj\Debug\FileDownloader.exe
+D:\Repos\FileDownloader\FileDownloader\obj\Debug\FileDownloader.pdb

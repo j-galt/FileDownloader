@@ -2,32 +2,32 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using FileDownloader.Interfaces;
 
-namespace WebFileDownloader
+namespace FileDownloader
 {
-    public class FileDownloader
+    public class BankGovUaFileDownloader
     {
-        private string _uri;
         private readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
         private readonly string _fileUri = @".*\.(pdf|PDF)";
+        private IWebClientFactory _webClientFactory;
+        private DownloadResult _result;
 
-        public FileDownloader(string uri)
+        public BankGovUaFileDownloader(IWebClientFactory webClientFactory)
         {
-            _uri = uri;
+            _webClientFactory = webClientFactory;
+            _result = new DownloadResult();
         }
 
-        public async Task Start()
+        public async Task<DownloadResult> Start(string uri, string localPath)
         {
-            WebClient wc = new WebClient();
-            await DownloadAllFiles(_uri, @"D:\Test\", wc);
+            await DownloadAllFilesAsync(uri, localPath);
+            return _result;
         }
 
-        private async Task DownloadAllFiles(string uri, string localPath, WebClient wc)
+        private async Task DownloadAllFilesAsync(string uri, string localPath)
         {
             HtmlWeb hw = new HtmlWeb();
             HtmlDocument hd = new HtmlDocument();
@@ -58,7 +58,7 @@ namespace WebFileDownloader
 
                 if (fileRx.IsMatch(hrefValue))
                 {
-                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r)", "").Trim();
+                    var name = Regex.Replace(link.InnerHtml, @"(<[^>]*>)|(\t|\n|\r|\s)", "");
                     fileUris[hrefValue] = name;
                 }                
             }
@@ -66,7 +66,7 @@ namespace WebFileDownloader
             foreach (var pageUri in pageUris)
             {
                 string fullUri = @"https://bank.gov.ua/" + pageUri.Key;
-                await DownloadAllFiles(fullUri, localPath + pageUri.Value, wc);
+                await DownloadAllFilesAsync(fullUri, localPath + pageUri.Value);
             }
 
             foreach (var fileUri in fileUris)
@@ -76,12 +76,21 @@ namespace WebFileDownloader
                 if (i > 0)
                 {
                     string fullUri = uri.Substring(0, i + 1) + fileUri.Key;
-                    await DownloadFileAsync(fullUri, localPath, fileUri.Value);
+
+                    try
+                    {
+                        await DownloadFileAsync(fullUri, localPath, fileUri.Value);
+                        _result.NumberOfDownloadedFiles++;
+                    }
+                    catch (Exception e)
+                    {
+                        _result.FailedToDownload[fullUri] = e;
+                    }
                 }
             }
         }
 
-        private async Task DownloadFileAsync(string fileUri, string localPath, string fileName) 
+        public async Task DownloadFileAsync(string fileUri, string localPath, string fileName)
         {
             bool exist = Directory.Exists(localPath);
 
@@ -89,16 +98,25 @@ namespace WebFileDownloader
             {
                 Directory.CreateDirectory(localPath);
             }
-            
-            WebClient wc = new WebClient();
 
-            try
+            IWebClient wc = _webClientFactory.Create();
+
+            for (int i = 0; i < 3; i++)
             {
-                await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
-            }
-            catch (Exception)
-            {
-                throw;
+                try
+                {
+                    await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
+                    break;
+                }
+                catch (Exception)
+                {
+                    if (i == 2)
+                    {
+                        throw;
+                    }
+
+                    await Task.Delay(1000);
+                }
             }
         }
     }
