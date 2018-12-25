@@ -26,7 +26,7 @@ namespace BankGovUaFileDownloader.Tests
 
             // Act
             await fd.DownloadFileAsync(@"https://bank.gov.ua/files/Shareholders/304706/index.html", 
-                    "D://Test1", "test");                
+                    "D://Test1.pdf");                
 
             // Assert
             mockWebClient.Verify(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()), 
@@ -47,7 +47,7 @@ namespace BankGovUaFileDownloader.Tests
             FileDownloader.BankGovUaFileDownloader fd = new FileDownloader.BankGovUaFileDownloader(mockWcf.Object);
 
             // Act
-            var res = await fd.Start(@"https://bank.gov.ua/files/Shareholders/304706/index.html", "D://Test1");
+            var res = await fd.Start(@"https://bank.gov.ua/files/Shareholders/304706/index.html", "D://Test1/");
 
             // Assert
             Assert.IsNotNull(res.FailedToDownload);

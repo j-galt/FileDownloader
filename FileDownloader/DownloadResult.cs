@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace FileDownloader
@@ -7,11 +8,10 @@ namespace FileDownloader
     {
         public DownloadResult()
         {
-            NumberOfDownloadedFiles = 0;
-            FailedToDownload = new Dictionary<string, Exception>();
+            FailedToDownload = new ConcurrentDictionary<string, Exception>();
         }
 
         public int NumberOfDownloadedFiles { get; set; }
-        public Dictionary<string, Exception> FailedToDownload { get; set; }
+        public ConcurrentDictionary<string, Exception> FailedToDownload { get; set; }
     }
 }
