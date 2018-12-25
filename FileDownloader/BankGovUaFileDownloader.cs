@@ -5,16 +5,19 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FileDownloader.Interfaces;
+using System.Threading;
+using System.Net;
 
 namespace FileDownloader
 {
     public class BankGovUaFileDownloader
     {
-        private readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
-        private readonly string _fileUri = @".*\.(pdf|PDF)";
-        private readonly string _tagAndSpace = @"(<[^>]*>)|(\t|\n|\r|\s)";
+        private static readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
+        private static readonly string _fileUri = @".*\.(pdf|PDF)";
+        private static readonly string _tagAndSpace = @"(<[^>]*>)|(\t|\n|\r|\s)";
         private IWebClientFactory _webClientFactory;
         private DownloadResult _result;
+        private int _filesCount;
 
         public BankGovUaFileDownloader(IWebClientFactory webClientFactory)
         {
@@ -24,7 +27,11 @@ namespace FileDownloader
 
         public async Task<DownloadResult> Start(string uri, string localPath)
         {
+            _filesCount = 0;
+
             await DownloadAllFilesAsync(uri, localPath);
+
+            _result.NumberOfDownloadedFiles = _filesCount;
             return _result;
         }
 
@@ -81,7 +88,7 @@ namespace FileDownloader
                     try
                     {
                         await DownloadFileAsync(fullUri, localPath, fileUri.Value);
-                        _result.NumberOfDownloadedFiles++;
+                        Interlocked.Increment(ref _filesCount);
                     }
                     catch (Exception e)
                     {
@@ -109,7 +116,7 @@ namespace FileDownloader
                     await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
                     break;
                 }
-                catch (Exception)
+                catch (WebException)
                 {
                     if (i == 2)
                     {
@@ -118,6 +125,10 @@ namespace FileDownloader
 
                     await Task.Delay(1000);
                 }
+                catch (Exception)
+                {
+                    throw;
+                }               
             }
         }
     }
