@@ -5,8 +5,8 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FileDownloader.Interfaces;
-using System.Threading;
 using System.Net;
+using System.Threading;
 
 namespace FileDownloader
 {
@@ -14,9 +14,10 @@ namespace FileDownloader
     {
         private static readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
         private static readonly string _fileUri = @".*\.(pdf|PDF)";
-        private static readonly string _tagAndSpace = @"(<[^>]*>)|(\t|\n|\r|\s)";
+        private static readonly string _domain = @"https://bank.gov.ua/";
         private IWebClientFactory _webClientFactory;
         private DownloadResult _result;
+        private string _localPath;
         private int _filesCount;
 
         public BankGovUaFileDownloader(IWebClientFactory webClientFactory)
@@ -28,14 +29,20 @@ namespace FileDownloader
         public async Task<DownloadResult> Start(string uri, string localPath)
         {
             _filesCount = 0;
+            _localPath = localPath;
 
-            await DownloadAllFilesAsync(uri, localPath);
+            if (!Directory.Exists(localPath))
+            {
+                Directory.CreateDirectory(localPath);
+            }
+            
+            await DownloadAllFilesAsync(uri);
 
             _result.NumberOfDownloadedFiles = _filesCount;
             return _result;
         }
 
-        private async Task DownloadAllFilesAsync(string uri, string localPath)
+        private async Task DownloadAllFilesAsync(string uri)
         {
             HtmlWeb hw = new HtmlWeb();
             HtmlDocument hd = new HtmlDocument();
@@ -51,36 +58,27 @@ namespace FileDownloader
 
             Regex pageRx = new Regex(_subPageUri, RegexOptions.IgnoreCase);
             Regex fileRx = new Regex(_fileUri, RegexOptions.IgnoreCase);
-            Dictionary<string, string> pageUris = new Dictionary<string, string>();
-            Dictionary<string, string> fileUris = new Dictionary<string, string>();
+            List<string> pageUris = new List<string>();
+            List<string> fileUris = new List<string>();
 
-            HtmlNodeCollection ancors = hd.DocumentNode.SelectNodes("//a[@href]");
-            if (ancors != null)
+            foreach (var link in hd.DocumentNode.SelectNodes("//a[@href]"))
             {
-                foreach (var link in ancors)
+                string hrefValue = link.GetAttributeValue("href", string.Empty);
+
+                if (pageRx.IsMatch(hrefValue))
                 {
-                    string hrefValue = link.GetAttributeValue("href", string.Empty);
-
-                    if (pageRx.IsMatch(hrefValue))
-                    {
-                        var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
-                        pageUris[hrefValue] = name;
-                    }
-
-                    if (fileRx.IsMatch(hrefValue))
-                    {
-                        var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
-                        fileUris[hrefValue] = name;
-                    }
+                    pageUris.Add(hrefValue);
                 }
-            }
-            else
-                Console.WriteLine("No ankers for '{0}'", uri);
 
+                if (fileRx.IsMatch(hrefValue))
+                {
+                    fileUris.Add(hrefValue);
+                }                
+            }
+                           
             foreach (var pageUri in pageUris)
             {
-                string fullUri = @"https://bank.gov.ua/" + pageUri.Key;
-                await DownloadAllFilesAsync(fullUri, localPath + pageUri.Value);
+                await DownloadAllFilesAsync(_domain + pageUri);
             }
 
             foreach (var fileUri in fileUris)
@@ -89,38 +87,35 @@ namespace FileDownloader
 
                 if (i > 0)
                 {
-                    string fullUri = uri.Substring(0, i + 1) + fileUri.Key;
+                    string absoluteUri = uri.Substring(0, i + 1) + fileUri;
 
                     try
                     {
-                        await DownloadFileAsync(fullUri, localPath, fileUri.Value);
+                        await DownloadFileAsync(absoluteUri, _localPath + '/' + fileUri);
                         Interlocked.Increment(ref _filesCount);
                     }
                     catch (Exception e)
                     {
-                        _result.FailedToDownload[fullUri] = e;
+                        _result.FailedToDownload[absoluteUri] = e;
                     }
                 }
             }
         }
 
-        public async Task DownloadFileAsync(string fileUri, string localPath, string fileName)
+        public async Task DownloadFileAsync(string absoluteUri, string fileName)
         {
-            bool exist = Directory.Exists(localPath);
-
-            if (!exist)
-            {
-                Directory.CreateDirectory(localPath);
-            }
-
             IWebClient wc = _webClientFactory.Create();
 
             for (int i = 0; i < 3; i++)
             {
                 try
                 {
-                    await wc.DownloadFileTaskAsync(fileUri, localPath + '/' + fileName + ".pdf");
+                    await wc.DownloadFileTaskAsync(absoluteUri, fileName);
                     break;
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    throw;
                 }
                 catch (WebException)
                 {
@@ -131,10 +126,6 @@ namespace FileDownloader
 
                     await Task.Delay(1000);
                 }
-                catch (Exception)
-                {
-                    throw;
-                }               
             }
         }
     }
