@@ -54,23 +54,29 @@ namespace FileDownloader
             Dictionary<string, string> pageUris = new Dictionary<string, string>();
             Dictionary<string, string> fileUris = new Dictionary<string, string>();
 
-            foreach (var link in hd.DocumentNode.SelectNodes("//a[@href]"))
+            HtmlNodeCollection ancors = hd.DocumentNode.SelectNodes("//a[@href]");
+            if (ancors != null)
             {
-                string hrefValue = link.GetAttributeValue("href", string.Empty);
-
-                if (pageRx.IsMatch(hrefValue))
+                foreach (var link in ancors)
                 {
-                    var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
-                    pageUris[hrefValue] = name;
+                    string hrefValue = link.GetAttributeValue("href", string.Empty);
+
+                    if (pageRx.IsMatch(hrefValue))
+                    {
+                        var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
+                        pageUris[hrefValue] = name;
+                    }
+
+                    if (fileRx.IsMatch(hrefValue))
+                    {
+                        var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
+                        fileUris[hrefValue] = name;
+                    }
                 }
-
-                if (fileRx.IsMatch(hrefValue))
-                {
-                    var name = Regex.Replace(link.InnerHtml, _tagAndSpace, "");
-                    fileUris[hrefValue] = name;
-                }                
             }
-                           
+            else
+                Console.WriteLine("No ankers for '{0}'", uri);
+
             foreach (var pageUri in pageUris)
             {
                 string fullUri = @"https://bank.gov.ua/" + pageUri.Key;
