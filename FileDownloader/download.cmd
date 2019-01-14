@@ -1,0 +1,1 @@
+bin\Debug\FileDownloader.exe "F:\home\vmdrot\Testing\OpenData\Output\BGU\328" 1> download.cmd.log 2>&1
