@@ -56,26 +56,37 @@ namespace FileDownloader
                 throw;
             }
 
+            if (hw.StatusCode == HttpStatusCode.NotFound)
+            {
+                _result.FailedToDownload[uri] = new ApplicationException(((int)HttpStatusCode.NotFound).ToString());
+                return;
+            }
+
             Regex pageRx = new Regex(_subPageUri, RegexOptions.IgnoreCase);
             Regex fileRx = new Regex(_fileUri, RegexOptions.IgnoreCase);
             List<string> pageUris = new List<string>();
             List<string> fileUris = new List<string>();
 
-            foreach (var link in hd.DocumentNode.SelectNodes("//a[@href]"))
+            HtmlNodeCollection ankers = hd.DocumentNode.SelectNodes("//a[@href]");
+            if (ankers != null && ankers.Count > 0)
             {
-                string hrefValue = link.GetAttributeValue("href", string.Empty);
-
-                if (pageRx.IsMatch(hrefValue))
+                foreach (var link in ankers)
                 {
-                    pageUris.Add(hrefValue);
+                    string hrefValue = link.GetAttributeValue("href", string.Empty);
+
+                    if (pageRx.IsMatch(hrefValue))
+                    {
+                        pageUris.Add(hrefValue);
+                    }
+
+                    if (fileRx.IsMatch(hrefValue))
+                    {
+                        fileUris.Add(hrefValue);
+                    }
                 }
 
-                if (fileRx.IsMatch(hrefValue))
-                {
-                    fileUris.Add(hrefValue);
-                }                
             }
-                           
+
             foreach (var pageUri in pageUris)
             {
                 await DownloadAllFilesAsync(_domain + pageUri);
@@ -88,10 +99,11 @@ namespace FileDownloader
                 if (i > 0)
                 {
                     string absoluteUri = uri.Substring(0, i + 1) + fileUri;
-
+                    string currSave2Path = Path.Combine(_localPath, fileUri);
                     try
                     {
-                        await DownloadFileAsync(absoluteUri, _localPath + '/' + fileUri);
+                        if (!File.Exists(currSave2Path))
+                            await DownloadFileAsync(absoluteUri, currSave2Path);
                         Interlocked.Increment(ref _filesCount);
                     }
                     catch (Exception e)
