@@ -9,6 +9,7 @@ namespace FileDownloader
     {
         private static readonly string DEFAULT_START_URL = @"https://bank.gov.ua/control/uk/publish/article?art_id=6738234&cat_id=51342";
         private static readonly string DEFAULT_SAVE2DIR = @"D:\Test\";
+
         static void Main(string[] args)
         {
             #region parse cmd line args
@@ -18,6 +19,7 @@ namespace FileDownloader
 
             IWebClientFactory wcf = new WebClientFactory();
             BankGovUaFileDownloader fd = new BankGovUaFileDownloader(wcf);
+
 #if __DONT_USE_TASK_RUN__
             Console.Read();
             var awaiter = fd.Start(startUrl,
@@ -30,6 +32,7 @@ namespace FileDownloader
             var res = awaiter.GetResult();
 #else
             Console.WriteLine("Downloading...");
+            
             var res = System.Threading.Tasks.Task.Run(() => fd.Start(DEFAULT_START_URL,
                DEFAULT_SAVE2DIR)).Result;
 #endif

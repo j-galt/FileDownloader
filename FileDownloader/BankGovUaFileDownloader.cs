@@ -12,6 +12,7 @@ namespace FileDownloader
 {
     public class BankGovUaFileDownloader
     {
+        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
         private static readonly string _subPageUri = @"files/Shareholders/([\d]+)/index.html";
         private static readonly string _fileUri = @".*\.(pdf|PDF)";
         private static readonly string _domain = @"https://bank.gov.ua/";
@@ -51,14 +52,18 @@ namespace FileDownloader
             {
                 hd = hw.Load(uri);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.Error(e, e.Message);
                 throw;
             }
 
             if (hw.StatusCode == HttpStatusCode.NotFound)
             {
-                _result.FailedToDownload[uri] = new ApplicationException(((int)HttpStatusCode.NotFound).ToString());
+                var e = new ApplicationException(((int)HttpStatusCode.NotFound).ToString());
+
+                _result.FailedToDownload[uri] = e;
+                _logger.Error(e, uri);
                 return;
             }
 
@@ -68,18 +73,19 @@ namespace FileDownloader
             List<string> fileUris = new List<string>();
 
             HtmlNodeCollection ankers = hd.DocumentNode.SelectNodes("//a[@href]");
+
             if (ankers != null && ankers.Count > 0)
             {
                 foreach (var link in ankers)
                 {
                     string hrefValue = link.GetAttributeValue("href", string.Empty);
+                    var match = Regex.Match(hrefValue, _subPageUri);
 
-                    if (pageRx.IsMatch(hrefValue))
+                    if (match.Success)
                     {
-                        pageUris.Add(hrefValue);
+                        pageUris.Add(match.Value);
                     }
-
-                    if (fileRx.IsMatch(hrefValue))
+                    else if (fileRx.IsMatch(hrefValue))
                     {
                         fileUris.Add(hrefValue);
                     }
@@ -100,15 +106,19 @@ namespace FileDownloader
                 {
                     string absoluteUri = uri.Substring(0, i + 1) + fileUri;
                     string currSave2Path = Path.Combine(_localPath, fileUri);
+
                     try
                     {
                         if (!File.Exists(currSave2Path))
                             await DownloadFileAsync(absoluteUri, currSave2Path);
+
                         Interlocked.Increment(ref _filesCount);
+                        _logger.Info(absoluteUri);
                     }
                     catch (Exception e)
                     {
                         _result.FailedToDownload[absoluteUri] = e;
+                        _logger.Error(e, e.Message);
                     }
                 }
             }
@@ -125,10 +135,6 @@ namespace FileDownloader
                     await wc.DownloadFileTaskAsync(absoluteUri, fileName);
                     break;
                 }
-                catch (DirectoryNotFoundException)
-                {
-                    throw;
-                }
                 catch (WebException)
                 {
                     if (i == 2)
@@ -137,6 +143,10 @@ namespace FileDownloader
                     }
 
                     await Task.Delay(1000);
+                }
+                catch (Exception)
+                {
+                    throw;
                 }
             }
         }

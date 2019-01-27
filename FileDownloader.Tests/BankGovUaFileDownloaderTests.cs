@@ -9,27 +9,30 @@ namespace BankGovUaFileDownloader.Tests
     [TestClass]
     public class BankGovUaFileDownloaderTests
     {
+        private Mock<IWebClientFactory> _mockWcf;
+        private Mock<IWebClient> _mockWebClient;
+
         [TestMethod]
         public async Task DownloadFileAsync_Calls_DownloadFileTaskAsync_Three_Times()
         {
             // Arrange
-            Mock<IWebClientFactory> mockWcf = new Mock<IWebClientFactory>();
-            Mock<IWebClient> mockWebClient = new Mock<IWebClient>();
+            _mockWcf = new Mock<IWebClientFactory>();
+            _mockWebClient = new Mock<IWebClient>();
 
-            mockWebClient.SetupSequence(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
+            _mockWebClient.SetupSequence(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .Throws(new WebException("mine"))
                 .Throws(new WebException("mine"))
                 .Returns(Task.CompletedTask);
-            mockWcf.Setup(wcf => wcf.Create()).Returns(mockWebClient.Object);
+            _mockWcf.Setup(wcf => wcf.Create()).Returns(_mockWebClient.Object);
 
-            FileDownloader.BankGovUaFileDownloader fd = new FileDownloader.BankGovUaFileDownloader(mockWcf.Object);
+            FileDownloader.BankGovUaFileDownloader fd = new FileDownloader.BankGovUaFileDownloader(_mockWcf.Object);
 
             // Act
             await fd.DownloadFileAsync(@"https://bank.gov.ua/files/Shareholders/304706/index.html", 
-                    "D://Test1.pdf");                
+                    "D://Test1.pdf");
 
             // Assert
-            mockWebClient.Verify(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()), 
+            _mockWebClient.Verify(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()), 
                 Times.Exactly(3));
         }
 
@@ -37,14 +40,14 @@ namespace BankGovUaFileDownloader.Tests
         public async Task Start_Returns_DownloadResult_With_Dictionary_Of_Failed()
         {
             // Arrange
-            Mock<IWebClientFactory> mockWcf = new Mock<IWebClientFactory>();
-            Mock<IWebClient> mockWebClient = new Mock<IWebClient>();
+            _mockWcf = new Mock<IWebClientFactory>();
+            _mockWebClient = new Mock<IWebClient>();
 
-            mockWebClient.Setup(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
+            _mockWebClient.Setup(wc => wc.DownloadFileTaskAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .Throws(new WebException());
-            mockWcf.Setup(wcf => wcf.Create()).Returns(mockWebClient.Object);
+            _mockWcf.Setup(wcf => wcf.Create()).Returns(_mockWebClient.Object);
 
-            FileDownloader.BankGovUaFileDownloader fd = new FileDownloader.BankGovUaFileDownloader(mockWcf.Object);
+            FileDownloader.BankGovUaFileDownloader fd = new FileDownloader.BankGovUaFileDownloader(_mockWcf.Object);
 
             // Act
             var res = await fd.Start(@"https://bank.gov.ua/files/Shareholders/304706/index.html", "D://Test1/");
